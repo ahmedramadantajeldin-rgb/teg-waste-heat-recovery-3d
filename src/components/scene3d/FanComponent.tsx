@@ -1,6 +1,7 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { getBrushedMetalTextures } from './pbrTextures';
 
 interface FanComponentProps {
   enabled: boolean;
@@ -131,6 +132,7 @@ export function FanComponent({
   const boreRadius = size * 0.435;
   const hubRadius = size * 0.145;
   const effectiveMountH = mountHeight ?? position[1] ?? size / 2 + 0.008;
+  const metalMaps = useMemo(() => getBrushedMetalTextures(), []);
 
   const housingGeo = useMemo(
     () => createHollowHousingGeometry(size, depth, boreRadius),
@@ -174,7 +176,15 @@ export function FanComponent({
         {/* Base foot plate resting strictly on workbench (world y = 0 .. 4mm) */}
         <mesh position={[0, bracketBottomY + footThickness / 2, 0]} castShadow receiveShadow>
           <boxGeometry args={[footLengthX, footThickness, footWidthZ]} />
-          <meshStandardMaterial color="#8c98a4" metalness={0.88} roughness={0.28} />
+          <meshStandardMaterial
+            color="#8c98a4"
+            metalness={0.88}
+            roughness={0.26}
+            bumpMap={metalMaps.bumpMap}
+            bumpScale={0.00022}
+            roughnessMap={metalMaps.roughnessMap}
+            envMapIntensity={1.38}
+          />
         </mesh>
 
         {/* Foot mounting cap bolts into workbench */}
@@ -290,10 +300,12 @@ export function FanComponent({
                 receiveShadow
               >
                 <meshStandardMaterial
-                  color="#4b5563"
-                  metalness={0.35}
-                  roughness={0.38}
-                  envMapIntensity={1.4}
+                  color="#5b6676"
+                  metalness={0.55}
+                  roughness={0.28}
+                  bumpMap={metalMaps.bumpMap}
+                  bumpScale={0.00018}
+                  envMapIntensity={1.65}
                 />
               </mesh>
             </group>

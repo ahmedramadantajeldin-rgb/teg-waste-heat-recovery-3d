@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useThermalMaterial } from './thermalShader';
+import { getBrushedCopperTextures } from './pbrTextures';
 
 interface HotSideSpreaderProps {
   T: number;               // °C hot-side interface temperature
@@ -29,6 +31,7 @@ export function HotSideSpreader({
   thermalView = false,
 }: HotSideSpreaderProps) {
   const topTemp = T_top ?? T + 2.5;
+  const copperMaps = useMemo(() => getBrushedCopperTextures(), []);
   const thermalMat = useThermalMaterial(thermalView, {
     mode: 1,
     scaleMin: T_min,
@@ -49,10 +52,13 @@ export function HotSideSpreader({
         <boxGeometry args={[width, thickness, length]} />
         {!thermalMat && (
           <meshStandardMaterial
-            color="#c87a3e"
+            color="#d08244"
             metalness={0.94}
-            roughness={0.22}
-            envMapIntensity={1.4}
+            roughness={0.20}
+            bumpMap={copperMaps.bumpMap}
+            bumpScale={0.00022}
+            roughnessMap={copperMaps.roughnessMap}
+            envMapIntensity={1.55}
           />
         )}
       </mesh>

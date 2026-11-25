@@ -2,6 +2,7 @@ import { useMemo, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getTEGTerminalOffsets } from './TEGModule';
+import { getBrushedMetalTextures } from './pbrTextures';
 
 interface SingleElectricalDisplayProps {
   tegPos: [number, number, number];    // TEG module center [x, y, z]
@@ -29,34 +30,63 @@ function drawDisplayCanvas(
   if (!ctx) return;
   const W = canvas.width;
   const H = canvas.height;
+  const s = W / 512; // 2x high-DPI scale factor for razor-sharp text
 
-  ctx.fillStyle = '#070d18';
-  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.scale(s, s);
+  const w = 512;
+  const h = 368;
 
+  // Deep instrument OLED background with subtle radial vignette
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#070f1d');
+  bg.addColorStop(1, '#040811');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle calibration frame + corner brackets
   ctx.strokeStyle = '#1e3a5f';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(8, 8, W - 16, H - 16);
+  ctx.lineWidth = 3;
+  ctx.strokeRect(8, 8, w - 16, h - 16);
+
+  // Corner L-reticles
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2.5;
+  const bLen = 14;
+  ctx.beginPath();
+  ctx.moveTo(8, 8 + bLen); ctx.lineTo(8, 8); ctx.lineTo(8 + bLen, 8);
+  ctx.moveTo(w - 8 - bLen, 8); ctx.lineTo(w - 8, 8); ctx.lineTo(w - 8, 8 + bLen);
+  ctx.moveTo(8, h - 8 - bLen); ctx.lineTo(8, h - 8); ctx.lineTo(8 + bLen, h - 8);
+  ctx.moveTo(w - 8 - bLen, h - 8); ctx.lineTo(w - 8, h - 8); ctx.lineTo(w - 8, h - 8 - bLen);
+  ctx.stroke();
+
+  // Status dot (active vs standby)
+  const isLive = power > 0.005;
+  ctx.fillStyle = isLive ? '#22c55e' : '#64748b';
+  ctx.beginPath();
+  ctx.arc(32, 37, 5, 0, Math.PI * 2);
+  ctx.fill();
 
   ctx.fillStyle = '#38bdf8';
-  ctx.font = 'bold 26px "JetBrains Mono", "Segoe UI", monospace';
+  ctx.font = 'bold 25px "JetBrains Mono", "Segoe UI", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('ELECTRICAL OUTPUT', W / 2, 46);
+  ctx.fillText('ELECTRICAL OUTPUT', w / 2 + 4, 45);
 
   ctx.strokeStyle = '#1e293b';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(24, 62);
-  ctx.lineTo(W - 24, 62);
+  ctx.moveTo(22, 62);
+  ctx.lineTo(w - 22, 62);
   ctx.stroke();
 
-  ctx.font = '600 22px "JetBrains Mono", monospace';
+  ctx.font = '600 21px "JetBrains Mono", monospace';
   ctx.fillStyle = '#94a3b8';
   ctx.textAlign = 'left';
-  ctx.fillText('Rated Voc (100K):', 26, 98);
-  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('Rated Voc (100K):', 26, 97);
+  ctx.fillStyle = '#e2e8f0';
   ctx.textAlign = 'right';
   const ratedText = ratedVoltage != null && ratedVoltage > 0 ? `${ratedVoltage.toFixed(2)} V` : '—';
-  ctx.fillText(ratedText, W - 26, 98);
+  ctx.fillText(ratedText, w - 26, 97);
 
   const drawRow = (
     yTop: number,
@@ -68,24 +98,29 @@ function drawDisplayCanvas(
   ) => {
     const rowH = 68;
     ctx.fillStyle = bgColor;
-    ctx.fillRect(22, yTop, W - 44, rowH);
+    ctx.fillRect(22, yTop, w - 44, rowH);
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 2;
-    ctx.strokeRect(22, yTop, W - 44, rowH);
+    ctx.strokeRect(22, yTop, w - 44, rowH);
+
+    // Subtle glowing accent bar on left edge of telemetry row
+    ctx.fillStyle = textColor;
+    ctx.fillRect(22, yTop, 5, rowH);
 
     ctx.fillStyle = textColor;
-    ctx.font = 'bold 34px "JetBrains Mono", monospace';
+    ctx.font = 'bold 33px "JetBrains Mono", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(label, 40, yTop + 46);
+    ctx.fillText(label, 42, yTop + 46);
 
     ctx.textAlign = 'right';
     ctx.font = 'bold 38px "JetBrains Mono", monospace';
-    ctx.fillText(val, W - 38, yTop + 47);
+    ctx.fillText(val, w - 38, yTop + 47);
   };
 
-  drawRow(120, 'rgba(16, 185, 129, 0.16)', 'rgba(74, 222, 128, 0.45)', '#4ade80', 'V =', `${actualVoltage.toFixed(2)} V`);
-  drawRow(198, 'rgba(250, 204, 21, 0.16)', 'rgba(250, 204, 21, 0.45)', '#facc15', 'I =', `${current.toFixed(2)} A`);
-  drawRow(276, 'rgba(56, 189, 248, 0.18)', 'rgba(56, 189, 248, 0.55)', '#38bdf8', 'P =', `${power.toFixed(2)} W`);
+  drawRow(120, 'rgba(16, 185, 129, 0.16)', 'rgba(74, 222, 128, 0.50)', '#4ade80', 'V =', `${actualVoltage.toFixed(2)} V`);
+  drawRow(198, 'rgba(250, 204, 21, 0.16)', 'rgba(250, 204, 21, 0.50)', '#facc15', 'I =', `${current.toFixed(2)} A`);
+  drawRow(276, 'rgba(56, 189, 248, 0.18)', 'rgba(56, 189, 248, 0.60)', '#38bdf8', 'P =', `${power.toFixed(2)} W`);
+  ctx.restore();
 }
 
 /**
@@ -125,17 +160,18 @@ export function SingleElectricalDisplay({
 
   useEffect(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 368;
+    canvas.width = 1024;
+    canvas.height = 736;
 
     const { actualVoltage: v, current: i, power: p, ratedVoltage: r } = latestPropsRef.current;
     drawDisplayCanvas(canvas, v, i, p, r);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.generateMipmaps = false;
-    tex.minFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.magFilter = THREE.LinearFilter;
+    tex.anisotropy = 8;
     tex.needsUpdate = true;
 
     texRef.current = tex;
@@ -263,6 +299,9 @@ export function SingleElectricalDisplay({
   const wireDummy = useMemo(() => new THREE.Object3D(), []);
   const wireClockRef = useRef(0);
   const pulsePosVec = useMemo(() => new THREE.Vector3(), []);
+  const pulseTanVec = useMemo(() => new THREE.Vector3(), []);
+  const upVec = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const brushedMetal = useMemo(() => getBrushedMetalTextures(), []);
 
   useFrame((_state, delta) => {
     const mesh = wireElectronsRef.current;
@@ -291,16 +330,22 @@ export function SingleElectricalDisplay({
       // Negative (-) black wire: electrons flow from TEG -> Display (u = 0 -> 1)
       const uNeg = (i / activePulses + t) % 1;
       blackCurve.getPointAt(uNeg, pulsePosVec);
+      blackCurve.getTangentAt(uNeg, pulseTanVec).normalize();
       wireDummy.position.copy(pulsePosVec);
-      wireDummy.scale.setScalar((0.82 + 0.25 * Math.sin(uNeg * Math.PI)) * energyScale);
+      wireDummy.quaternion.setFromUnitVectors(upVec, pulseTanVec);
+      const sNeg = (0.82 + 0.25 * Math.sin(uNeg * Math.PI)) * energyScale;
+      wireDummy.scale.set(sNeg, sNeg * 1.65, sNeg);
       wireDummy.updateMatrix();
       mesh.setMatrixAt(i, wireDummy.matrix);
 
       // Positive (+) red wire: electrons return from Display -> TEG (u = 1 -> 0)
       const uPos = 1 - ((i / activePulses + t) % 1);
       redCurve.getPointAt(uPos, pulsePosVec);
+      redCurve.getTangentAt(uPos, pulseTanVec).normalize();
       wireDummy.position.copy(pulsePosVec);
-      wireDummy.scale.setScalar((0.82 + 0.25 * Math.sin(uPos * Math.PI)) * energyScale);
+      wireDummy.quaternion.setFromUnitVectors(upVec, pulseTanVec);
+      const sPos = (0.82 + 0.25 * Math.sin(uPos * Math.PI)) * energyScale;
+      wireDummy.scale.set(sPos, sPos * 1.65, sPos);
       wireDummy.updateMatrix();
       mesh.setMatrixAt(activePulses + i, wireDummy.matrix);
     }
@@ -322,7 +367,7 @@ export function SingleElectricalDisplay({
       {/* ── External Circuit Electron Flow Pulses (scaled by P_elec) ── */}
       {showElectrons && (
         <instancedMesh ref={wireElectronsRef} args={[undefined, undefined, MAX_WIRE_PULSES * 2]}>
-          <sphereGeometry args={[0.0018, 12, 12]} />
+          <capsuleGeometry args={[0.00145, 0.0022, 6, 12]} />
           <meshBasicMaterial ref={wireMatRef} color="#22d3ee" toneMapped={false} />
         </instancedMesh>
       )}
@@ -330,8 +375,14 @@ export function SingleElectricalDisplay({
       {/* ── Mechanical Support Stand Flush on Workbench (y = 0) ── */}
       <group position={standPos}>
         <mesh position={[0, 0.0015, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.011, 0.011, 0.003, 20]} />
-          <meshStandardMaterial color="#64748b" metalness={0.88} roughness={0.25} />
+          <cylinderGeometry args={[0.011, 0.011, 0.003, 24]} />
+          <meshStandardMaterial
+            color="#738090"
+            metalness={0.88}
+            roughness={0.24}
+            bumpMap={brushedMetal.bumpMap}
+            bumpScale={0.0002}
+          />
         </mesh>
         {[0, (2 * Math.PI) / 3, (4 * Math.PI) / 3].map((rad, i) => (
           <mesh key={i} position={[Math.cos(rad) * 0.0075, 0.0032, Math.sin(rad) * 0.0075]} castShadow>
@@ -356,24 +407,30 @@ export function SingleElectricalDisplay({
         {/* Brushed aluminum instrument casing */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[0.068, 0.050, 0.008]} />
-          <meshStandardMaterial color="#1e2430" metalness={0.78} roughness={0.30} />
+          <meshStandardMaterial
+            color="#202836"
+            metalness={0.82}
+            roughness={0.28}
+            bumpMap={brushedMetal.bumpMap}
+            bumpScale={0.0002}
+          />
         </mesh>
 
         {/* Flush matte glass surround */}
         <mesh position={[0, 0, 0.0041]}>
           <boxGeometry args={[0.064, 0.046, 0.0008]} />
-          <meshStandardMaterial color="#0b101b" roughness={0.35} metalness={0.3} />
+          <meshStandardMaterial color="#0b101b" roughness={0.22} metalness={0.35} />
         </mesh>
 
-        {/* Backlit Crisp OLED Screen */}
+        {/* Backlit Crisp 1024px OLED Screen */}
         <mesh position={[0, 0, 0.0046]}>
           <planeGeometry args={[0.060, 0.043]} />
           <meshStandardMaterial
             ref={matRef}
             emissive="#ffffff"
-            emissiveIntensity={0.85}
-            roughness={0.25}
-            metalness={0.05}
+            emissiveIntensity={0.92}
+            roughness={0.18}
+            metalness={0.08}
           />
         </mesh>
 

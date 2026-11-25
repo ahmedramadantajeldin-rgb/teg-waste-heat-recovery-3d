@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { PBR_PRESETS } from './colorUtils';
 import { useThermalMaterial } from './thermalShader';
+import { getBrushedMetalTextures, getBrushedCopperTextures } from './pbrTextures';
 
 interface HeatSink3DProps {
   N: number;              // number of fins
@@ -59,6 +60,11 @@ export function HeatSink3D({
 }: HeatSink3DProps) {
   const preset = PBR_PRESETS[material] ?? PBR_PRESETS.aluminum;
   const isThermal = viewMode === 'thermal';
+  const metalMaps = useMemo(
+    () => (material === 'copper' ? getBrushedCopperTextures() : getBrushedMetalTextures()),
+    [material],
+  );
+  const benchMetalMaps = useMemo(() => getBrushedMetalTextures(), []);
 
   const finLengthX = L > 0 ? L : L_base;
   const baseSpanZ = W_base;
@@ -175,7 +181,15 @@ export function HeatSink3D({
       >
         <boxGeometry args={[flangeX, mountThickness, flangeZ]} />
         {!lowerDeckThermalMat && (
-          <meshStandardMaterial color="#94a0ad" metalness={0.86} roughness={0.30} />
+          <meshStandardMaterial
+            color="#94a0ad"
+            metalness={0.86}
+            roughness={0.28}
+            bumpMap={benchMetalMaps.bumpMap}
+            bumpScale={0.0002}
+            roughnessMap={benchMetalMaps.roughnessMap}
+            envMapIntensity={1.35}
+          />
         )}
       </mesh>
 
@@ -207,7 +221,10 @@ export function HeatSink3D({
             color={preset.color}
             metalness={preset.metalness}
             roughness={preset.roughness}
-            envMapIntensity={1.3}
+            bumpMap={metalMaps.bumpMap}
+            bumpScale={0.00022}
+            roughnessMap={metalMaps.roughnessMap}
+            envMapIntensity={1.38}
           />
         )}
       </mesh>
@@ -229,7 +246,10 @@ export function HeatSink3D({
                   color={preset.color}
                   metalness={preset.metalness}
                   roughness={preset.roughness}
-                  envMapIntensity={1.2}
+                  bumpMap={metalMaps.bumpMap}
+                  bumpScale={0.00020}
+                  roughnessMap={metalMaps.roughnessMap}
+                  envMapIntensity={1.35}
                 />
               )}
             </mesh>
@@ -253,6 +273,10 @@ export function HeatSink3D({
                   color={preset.color}
                   metalness={preset.metalness}
                   roughness={preset.roughness}
+                  bumpMap={metalMaps.bumpMap}
+                  bumpScale={0.00020}
+                  roughnessMap={metalMaps.roughnessMap}
+                  envMapIntensity={1.35}
                 />
               )}
             </mesh>
@@ -274,7 +298,10 @@ export function HeatSink3D({
             color={preset.color}
             metalness={preset.metalness}
             roughness={preset.roughness}
-            envMapIntensity={1.3}
+            bumpMap={metalMaps.bumpMap}
+            bumpScale={0.00022}
+            roughnessMap={metalMaps.roughnessMap}
+            envMapIntensity={1.4}
           />
         )}
       </mesh>

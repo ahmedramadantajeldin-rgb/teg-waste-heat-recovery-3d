@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useThermalMaterial } from './thermalShader';
+import { getBrushedMetalTextures } from './pbrTextures';
 
 interface ColdSideSpreaderProps {
   T: number;               // °C TEG cold-side interface temperature
@@ -30,6 +32,7 @@ export function ColdSideSpreader({
   thermalView = false,
 }: ColdSideSpreaderProps) {
   const botTemp = T_hs_base ?? Math.max(T_min, T - 2);
+  const brushed = useMemo(() => getBrushedMetalTextures(), []);
   const thermalMat = useThermalMaterial(thermalView, {
     mode: 1,
     scaleMin: T_min,
@@ -52,8 +55,11 @@ export function ColdSideSpreader({
           <meshStandardMaterial
             color="#94a3b8"
             metalness={0.88}
-            roughness={0.28}
-            envMapIntensity={1.2}
+            roughness={0.26}
+            bumpMap={brushed.bumpMap}
+            bumpScale={0.00022}
+            roughnessMap={brushed.roughnessMap}
+            envMapIntensity={1.38}
           />
         )}
       </mesh>

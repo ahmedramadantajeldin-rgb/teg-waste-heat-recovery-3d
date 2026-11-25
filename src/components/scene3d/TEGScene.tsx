@@ -252,22 +252,23 @@ export function TEGScene({ results, style }: TEGSceneProps) {
       {/* ── Main 3D Canvas ── */}
       <SceneErrorBoundary>
         <Canvas
+          dpr={[1, 2]}
           camera={{ position: [-0.015, geom.apparatusCenterY + 0.095, 0.275], fov: 32 }}
           style={{
             width: '100%',
             height: '100%',
-            background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 60%, #090e17 100%)',
+            background: 'linear-gradient(160deg, #24344d 0%, #152236 60%, #0d1522 100%)',
           }}
-          shadows
+          shadows="soft"
           gl={{
             antialias: true,
             alpha: false,
             preserveDrawingBuffer: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.15,
+            toneMappingExposure: 1.24,
           }}
           onCreated={({ gl }) => {
-            gl.setClearColor('#0b1322', 1);
+            gl.setClearColor('#131e30', 1);
           }}
         >
           <Suspense fallback={null}>

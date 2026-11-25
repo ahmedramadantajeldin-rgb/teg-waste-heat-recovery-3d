@@ -2,6 +2,7 @@ import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useThermalMaterial } from './thermalShader';
+import { getAluminaCeramicTextures, getBrushedCopperTextures } from './pbrTextures';
 
 interface TEGModuleProps {
   T_h: number;             // hot side temperature °C
@@ -406,6 +407,8 @@ export function TEGModule({
 
   const electronRadius = Math.max(0.00044, pelletSize * 0.16);
   const holeRadius = Math.max(0.00040, pelletSize * 0.145);
+  const ceramicMaps = useMemo(() => getAluminaCeramicTextures(), []);
+  const copperMaps = useMemo(() => getBrushedCopperTextures(), []);
 
   const cornerOffsetX = width * 0.455;
   const cornerOffsetZ = length * 0.455;
@@ -418,10 +421,13 @@ export function TEGModule({
         {!topCeramicMat && (
           <meshStandardMaterial
             color="#ffffff"
-            roughness={0.22}
+            roughness={0.24}
             metalness={0.04}
+            bumpMap={ceramicMaps.bumpMap}
+            bumpScale={0.00018}
+            roughnessMap={ceramicMaps.roughnessMap}
             emissive="#cbd5e1"
-            emissiveIntensity={0.10}
+            emissiveIntensity={0.09}
           />
         )}
       </mesh>
@@ -432,10 +438,13 @@ export function TEGModule({
         {!botCeramicMat && (
           <meshStandardMaterial
             color="#ffffff"
-            roughness={0.22}
+            roughness={0.24}
             metalness={0.04}
+            bumpMap={ceramicMaps.bumpMap}
+            bumpScale={0.00018}
+            roughnessMap={ceramicMaps.roughnessMap}
             emissive="#cbd5e1"
-            emissiveIntensity={0.10}
+            emissiveIntensity={0.09}
           />
         )}
       </mesh>
@@ -451,7 +460,15 @@ export function TEGModule({
             material={m ?? undefined}
           >
             <boxGeometry args={[b.w, copperPadThick, b.d]} />
-            {!m && <meshStandardMaterial color="#d97736" metalness={0.92} roughness={0.22} />}
+            {!m && (
+              <meshStandardMaterial
+                color="#d97736"
+                metalness={0.94}
+                roughness={0.20}
+                bumpMap={copperMaps.bumpMap}
+                bumpScale={0.00015}
+              />
+            )}
           </mesh>
         );
       })}
