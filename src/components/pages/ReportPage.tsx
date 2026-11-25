@@ -25,7 +25,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div style={{ fontSize: 10, fontWeight: 700, color: C.accent, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, padding: '4px 0', borderBottom: `1px solid ${C.bg.border}` }}>
         {title}
       </div>
-      {children}
+      <div style={{ overflowX: 'auto' }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -99,14 +101,14 @@ export function ReportPage({ results }: ReportPageProps) {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '16px 20px', background: C.bg.primary }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text.primary }}>Engineering Simulation Report</h2>
           <div style={{ fontSize: 11, color: C.text.secondary, marginTop: 2 }}>
             TEG Waste Heat Recovery — {new Date().toLocaleString()}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <ActionBtn icon={<Save size={12} />} label="Save Case" onClick={saveCase} />
           <ActionBtn icon={<Download size={12} />} label="Export CSV" onClick={exportCSV} color={C.success} />
           <ActionBtn icon={<Printer size={12} />} label="Print" onClick={() => window.print()} color={C.text.secondary} />

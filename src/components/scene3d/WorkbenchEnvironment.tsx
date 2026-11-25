@@ -1,4 +1,4 @@
-import { Environment, ContactShadows } from '@react-three/drei';
+import { Environment, Lightformer, ContactShadows } from '@react-three/drei';
 
 interface WorkbenchEnvironmentProps {
   width?: number;
@@ -6,9 +6,10 @@ interface WorkbenchEnvironmentProps {
 }
 
 /**
- * Realistic Parametric Laboratory Testing Workbench & Studio Lighting:
+ * 100% Offline Procedural Laboratory Testing Workbench & Studio Lighting:
+ * - Zero external CDN HDRI network fetch (eliminates Suspense freezes / black fallback cubes)
+ * - Procedural studio softbox Lightformers for realistic brushed copper, aluminum & steel reflections
  * - Stainless steel laboratory workbench with brushed metallic sheen
- * - Expands automatically so even enlarged fin/fan configurations sit solidly on benchtop
  */
 export function WorkbenchEnvironment({
   width = 0.44,
@@ -16,12 +17,12 @@ export function WorkbenchEnvironment({
 }: WorkbenchEnvironmentProps) {
   return (
     <>
-      <ambientLight intensity={0.48} color="#e2e8f0" />
+      <ambientLight intensity={0.55} color="#e2e8f0" />
 
       <directionalLight
         castShadow
         position={[0.8, 1.4, 0.9]}
-        intensity={1.6}
+        intensity={1.65}
         color="#ffffff"
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -34,11 +35,45 @@ export function WorkbenchEnvironment({
         shadow-bias={-0.0001}
       />
 
-      <directionalLight position={[-0.9, 0.6, 0.5]} intensity={0.68} color="#dbeafe" />
-      <directionalLight position={[0.2, 0.8, -0.9]} intensity={0.55} color="#fed7aa" />
-      <pointLight position={[0, -0.2, 0]} intensity={0.2} color="#94a3b8" />
+      <directionalLight position={[-0.9, 0.6, 0.5]} intensity={0.72} color="#dbeafe" />
+      <directionalLight position={[0.2, 0.8, -0.9]} intensity={0.58} color="#fed7aa" />
+      <pointLight position={[0, -0.2, 0]} intensity={0.22} color="#94a3b8" />
 
-      <Environment preset="warehouse" environmentIntensity={0.6} />
+      {/* Local GPU-generated studio IBL (no external HDR network request) */}
+      <Environment resolution={256} frames={1} environmentIntensity={0.62}>
+        <Lightformer
+          form="rect"
+          intensity={2.2}
+          color="#f8fafc"
+          position={[0, 4, 1]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[6, 4, 1]}
+        />
+        <Lightformer
+          form="rect"
+          intensity={1.5}
+          color="#bae6fd"
+          position={[-4, 2, 2]}
+          rotation={[0, Math.PI / 2.6, 0]}
+          scale={[4, 3, 1]}
+        />
+        <Lightformer
+          form="rect"
+          intensity={1.2}
+          color="#fed7aa"
+          position={[4, 1.8, -2]}
+          rotation={[0, -Math.PI / 2.2, 0]}
+          scale={[4, 2.5, 1]}
+        />
+        <Lightformer
+          form="rect"
+          intensity={0.7}
+          color="#64748b"
+          position={[0, -3, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[8, 8, 1]}
+        />
+      </Environment>
 
       {/* ── Stainless Steel Laboratory Workbench Tabletop (top strictly at y = 0) ── */}
       <group position={[0, -0.010, 0]}>

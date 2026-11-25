@@ -1,14 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
-  LayoutDashboard, Box, Layers, Wind, Shield, Zap,
+  Box, Layers, Wind, Shield, Zap,
   BarChart3, Settings2, FileText, RefreshCw, Settings,
-  Activity, Thermometer, BatteryCharging
+  Activity, BatteryCharging, X
 } from 'lucide-react';
 import { useSimulationStore, selectSimState } from './store/simulationStore';
 import { solveAll } from './physics/systemSolver';
 import type { PageName } from './store/simulationStore';
 import type { SimulationResults } from './physics/types';
-import { C, FONT, NAV_H, BOTTOM_H, RIGHT_W, fmt, fmtPct, thermalColor } from './design/theme';
+import { C, FONT, fmt, fmtPct, thermalColor } from './design/theme';
+import { useViewport } from './design/useViewport';
 
 // Pages
 import { DashboardPage } from './components/pages/DashboardPage';
@@ -39,22 +40,27 @@ function TopNav({
   activePage,
   onNavigate,
   onReset,
+  onOpenSettings,
+  isMobile,
 }: {
   activePage: PageName;
   onNavigate: (p: PageName) => void;
   onReset: () => void;
+  onOpenSettings: () => void;
+  isMobile: boolean;
 }) {
   return (
     <div style={{
-      height: 52,
+      height: 50,
       background: 'rgba(8, 15, 26, 0.96)',
       borderBottom: '1px solid #1e3a5f',
       display: 'flex',
       alignItems: 'center',
-      padding: '0 12px',
+      padding: isMobile ? '0 8px' : '0 12px',
       flexShrink: 0,
       zIndex: 100,
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
+      gap: 4,
     }}>
       {/* Brand Logo & Title (Click to view System Dashboard) */}
       <div
@@ -62,10 +68,9 @@ function TopNav({
         title="Open System Dashboard"
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
-          paddingRight: 10,
+          paddingRight: isMobile ? 8 : 10,
           borderRight: '1px solid #1e3a5f',
           flexShrink: 0,
-          minWidth: 152,
           cursor: 'pointer',
         }}
       >
@@ -79,18 +84,20 @@ function TopNav({
         }}>
           <Settings size={15} />
         </div>
-        <div>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: '#f8fafc', lineHeight: 1.15, letterSpacing: '-0.01em' }}>
-            TEG Simulation
+        {!isMobile && (
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#f8fafc', lineHeight: 1.15, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+              TEG Simulation
+            </div>
+            <div style={{ fontSize: 8.5, color: '#94a3b8', letterSpacing: '0.01em', lineHeight: 1, marginTop: 1, whiteSpace: 'nowrap' }}>
+              Waste Heat Recovery
+            </div>
           </div>
-          <div style={{ fontSize: 8.5, color: '#94a3b8', letterSpacing: '0.01em', lineHeight: 1, marginTop: 1 }}>
-            Waste Heat Recovery
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Nav tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '0 4px', gap: 2, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, padding: '0 4px', gap: 2, overflowX: 'auto' }}>
         {NAV_ITEMS.map(({ page, icon, label }) => {
           const isActive = activePage === page;
           return (
@@ -99,7 +106,7 @@ function TopNav({
               onClick={() => onNavigate(page)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
-                padding: '5px 6px',
+                padding: '5px 7px',
                 border: isActive ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
                 borderRadius: 6,
                 background: isActive ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)' : 'transparent',
@@ -133,9 +140,9 @@ function TopNav({
       </div>
 
       {/* Right toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, borderLeft: '1px solid #1e3a5f' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: isMobile ? 6 : 10, borderLeft: '1px solid #1e3a5f', flexShrink: 0 }}>
         <NavIconBtn icon={<RefreshCw size={14} />} title="Reset to defaults" onClick={onReset} />
-        <NavIconBtn icon={<Settings size={14} />} title="Settings" onClick={() => {}} />
+        <NavIconBtn icon={<Settings size={14} />} title="Settings" onClick={onOpenSettings} />
       </div>
     </div>
   );
@@ -228,7 +235,7 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
       <div style={{ width: 1, height: 28, background: '#21262d' }} />
 
       {/* 2. Gross Electrical Power */}
-      <div style={{ minWidth: 100 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Gross Power
         </div>
@@ -242,10 +249,10 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         </div>
       </div>
 
-      <div style={{ width: 1, height: 28, background: '#21262d' }} />
+      <div style={{ width: 1, height: 28, background: '#21262d', flexShrink: 0 }} />
 
       {/* 3. ΔT Across TEG */}
-      <div style={{ minWidth: 90 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           ΔT (TEG)
         </div>
@@ -254,10 +261,10 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         </div>
       </div>
 
-      <div style={{ width: 1, height: 28, background: '#21262d' }} />
+      <div style={{ width: 1, height: 28, background: '#21262d', flexShrink: 0 }} />
 
       {/* 4. Thermal Efficiency */}
-      <div style={{ minWidth: 80 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           η Thermal
         </div>
@@ -266,10 +273,10 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         </div>
       </div>
 
-      <div style={{ width: 1, height: 28, background: '#21262d' }} />
+      <div style={{ width: 1, height: 28, background: '#21262d', flexShrink: 0 }} />
 
       {/* 5. Fin Efficiency */}
-      <div style={{ minWidth: 80 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           η Fin
         </div>
@@ -278,10 +285,10 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         </div>
       </div>
 
-      <div style={{ width: 1, height: 28, background: '#21262d' }} />
+      <div style={{ width: 1, height: 28, background: '#21262d', flexShrink: 0 }} />
 
       {/* 6. Hot & Cold Temperatures */}
-      <div style={{ minWidth: 120 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           T Hot / T Cold
         </div>
@@ -292,10 +299,10 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         </div>
       </div>
 
-      <div style={{ width: 1, height: 28, background: '#21262d' }} />
+      <div style={{ width: 1, height: 28, background: '#21262d', flexShrink: 0 }} />
 
       {/* 7. Heat Flow Q_h / Q_c */}
-      <div style={{ minWidth: 110 }}>
+      <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 9, color: C.text.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Q̇_in / Q̇_out
         </div>
@@ -321,9 +328,124 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
         fontWeight: 600,
         color: '#4ade80',
         letterSpacing: '0.04em',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
       }}>
         <Activity size={12} color="#4ade80" />
         LIVE SOLVER
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Modal ──────────────────────────────────────────────────────────
+function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const store = useSimulationStore();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Simulation Settings"
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 500,
+        background: 'rgba(2, 6, 23, 0.72)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 420,
+          background: '#0f172a', border: '1px solid #1e3a5f', borderRadius: 12,
+          padding: 18, boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)', color: '#e2e8f0',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #1e293b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Settings size={16} color="#38bdf8" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#f8fafc' }}>Simulation Settings</span>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close settings"
+            style={{
+              background: 'transparent', border: '1px solid #334155', borderRadius: 6,
+              color: '#94a3b8', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
+          <div style={{ background: '#0b1220', border: '1px solid #1e293b', borderRadius: 8, padding: 10 }}>
+            <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: 6, fontSize: 11 }}>3D Visualization Shortcuts</div>
+            {[
+              ['Airflow Streamlines', store.showAirflow, () => store.setShowAirflow(!store.showAirflow)],
+              ['Electron & Hole Flow', store.showElectrons, () => store.setShowElectrons(!store.showElectrons)],
+              ['Turntable Auto-Rotate', store.autoRotate, () => store.setAutoRotate(!store.autoRotate)],
+              ['Component Callout Labels', store.showLabels, () => store.setShowLabels(!store.showLabels)],
+              ['Exploded Assembly View', store.explodeView, () => store.setExplodeView(!store.explodeView)],
+            ].map(([label, val, toggle]) => (
+              <div key={label as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                <span style={{ color: '#cbd5e1' }}>{label as string}</span>
+                <button
+                  onClick={toggle as () => void}
+                  style={{
+                    padding: '2px 10px', borderRadius: 10, fontSize: 10, fontWeight: 700,
+                    border: `1px solid ${val ? '#38bdf8' : '#334155'}`,
+                    background: val ? '#1d4ed8' : '#1e293b',
+                    color: val ? '#fff' : '#94a3b8',
+                  }}
+                >
+                  {val ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: '#0b1220', border: '1px solid #1e293b', borderRadius: 8, padding: 10, fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+            <div><strong style={{ color: '#e2e8f0' }}>Solver:</strong> First-Law series-parallel coupled thermal-electrical model (Eq. 1–30).</div>
+            <div><strong style={{ color: '#e2e8f0' }}>Navigation:</strong> Drag to orbit · Scroll to zoom · Right-drag to pan.</div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+            <button
+              onClick={() => {
+                store.resetToDefaults();
+                onClose();
+              }}
+              style={{
+                padding: '7px 12px', borderRadius: 6, border: '1px solid #ef444455',
+                background: '#7f1d1d33', color: '#fca5a5', fontSize: 11, fontWeight: 600,
+              }}
+            >
+              Reset All to Defaults
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '7px 16px', borderRadius: 6, border: '1px solid #38bdf8',
+                background: '#1d4ed8', color: '#fff', fontSize: 11, fontWeight: 700,
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -333,6 +455,8 @@ function BottomStrip({ results, T_source, T_ambient }: { results: SimulationResu
 export default function App() {
   const store = useSimulationStore();
   const { activePage } = store;
+  const { isMobile } = useViewport();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Reactive simulation: recompute whenever any input changes
   const simState = selectSimState(store);
@@ -391,7 +515,11 @@ export default function App() {
         activePage={activePage}
         onNavigate={store.setActivePage}
         onReset={store.resetToDefaults}
+        onOpenSettings={() => setSettingsOpen(true)}
+        isMobile={isMobile}
       />
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Page content — fills between nav and bottom strip */}
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>

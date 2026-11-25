@@ -3,10 +3,11 @@ import { TEGScene } from '../scene3d/TEGScene';
 import { useSimulationStore, selectSimState } from '../../store/simulationStore';
 import { computeAssemblyGeometry } from '../../physics/assemblyGeometry';
 import { resolveInsulationMaterial } from '../../physics/insulationModel';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults } from '../../physics/types';
 import {
   Thermometer, Layers, Wind, Shield, Play, CheckCircle2,
-  ChevronDown, ChevronRight, Crosshair, Cpu
+  ChevronDown, ChevronRight, ChevronUp, Crosshair, Cpu
 } from 'lucide-react';
 
 interface Setup3DPageProps {
@@ -204,8 +205,18 @@ function CollapsibleSection({
   );
 }
 
-// ─── Right Sidebar: Quick Controls ─────────────────────────────────────────
-function QuickControlsSidebar({ results }: { results: SimulationResults | null }) {
+// ─── Right / Bottom Drawer: Quick Controls ──────────────────────────────────
+function QuickControlsSidebar({
+  results,
+  isCompact,
+  drawerOpen,
+  onToggleDrawer,
+}: {
+  results: SimulationResults | null;
+  isCompact: boolean;
+  drawerOpen: boolean;
+  onToggleDrawer: () => void;
+}) {
   const store = useSimulationStore();
   const simState = selectSimState(store);
 
@@ -245,49 +256,87 @@ function QuickControlsSidebar({ results }: { results: SimulationResults | null }
   return (
     <div
       style={{
-        width: 300,
+        width: isCompact ? '100%' : (drawerOpen ? 296 : 44),
+        height: isCompact ? (drawerOpen ? '44%' : 42) : '100%',
         background: 'rgba(8, 15, 26, 0.96)',
-        borderLeft: '1px solid #1e3a5f',
+        borderLeft: isCompact ? 'none' : '1px solid #1e3a5f',
+        borderTop: isCompact ? '1px solid #1e3a5f' : 'none',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
-        overflowY: 'auto',
+        overflow: 'hidden',
         boxSizing: 'border-box',
         zIndex: 20,
+        transition: 'width 0.18s ease, height 0.18s ease',
       }}
     >
       {/* Sidebar Header */}
       <div
+        onClick={isCompact || !drawerOpen ? onToggleDrawer : undefined}
         style={{
-          padding: '10px 14px',
-          borderBottom: '1px solid #1e3a5f',
+          padding: isCompact ? '9px 14px' : (drawerOpen ? '10px 14px' : '10px 8px'),
+          borderBottom: drawerOpen ? '1px solid #1e3a5f' : 'none',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: isCompact || drawerOpen ? 'space-between' : 'center',
           gap: 8,
           background: 'rgba(15, 23, 42, 0.75)',
+          cursor: isCompact || !drawerOpen ? 'pointer' : 'default',
+          flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 5,
-            background: 'rgba(56, 189, 248, 0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#38bdf8',
-          }}
-        >
-          <Crosshair size={13} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              background: 'rgba(56, 189, 248, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#38bdf8',
+              flexShrink: 0,
+            }}
+          >
+            <Crosshair size={13} />
+          </div>
+          {(isCompact || drawerOpen) && (
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+              Quick Controls
+            </span>
+          )}
         </div>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
-          Quick Controls
-        </span>
+
+        {(isCompact || drawerOpen) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleDrawer();
+            }}
+            title={drawerOpen ? 'Collapse controls' : 'Expand controls'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 7px',
+              borderRadius: 5,
+              border: '1px solid #1e3a5f',
+              background: 'rgba(15, 23, 42, 0.85)',
+              color: '#94a3b8',
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          >
+            {isCompact ? (drawerOpen ? <ChevronDown size={13} /> : <ChevronUp size={13} />) : <ChevronRight size={13} />}
+            <span>{drawerOpen ? 'Hide' : 'Show'}</span>
+          </button>
+        )}
       </div>
 
       {/* Sidebar Content (Scrollable) */}
-      <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {drawerOpen && (
+      <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
         {/* Section 1: Operating Conditions */}
         <CollapsibleSection
           icon={
@@ -604,21 +653,49 @@ function QuickControlsSidebar({ results }: { results: SimulationResults | null }
           )}
         </button>
       </div>
+      )}
     </div>
   );
 }
 
-// ─── Main Setup3DPage: 100% Full Height Viewport (No Bottom Cards) ──────────
+// ─── Main Setup3DPage: Responsive Desktop & Mobile 3D Viewport ──────────────
 export function Setup3DPage({ results }: Setup3DPageProps) {
+  const { isCompact } = useViewport();
+  const [drawerOpen, setDrawerOpen] = useState(true);
+
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: isCompact ? 'column' : 'row',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        background: '#090e17',
+      }}
+    >
       {/* 3D Scene Viewport takes full remaining screen space */}
-      <div style={{ flex: 1, position: 'relative', minWidth: 0, height: '100%' }}>
+      <div
+        style={{
+          flex: 1,
+          position: 'relative',
+          minWidth: 0,
+          minHeight: isCompact ? 220 : 0,
+          width: '100%',
+          height: isCompact ? undefined : '100%',
+          background: '#090e17',
+        }}
+      >
         <TEGScene results={results} style={{ position: 'absolute', inset: 0 }} />
       </div>
 
-      {/* Redesigned Quick Controls Sidebar */}
-      <QuickControlsSidebar results={results} />
+      {/* Responsive Quick Controls Sidebar / Bottom Sheet */}
+      <QuickControlsSidebar
+        results={results}
+        isCompact={isCompact}
+        drawerOpen={drawerOpen}
+        onToggleDrawer={() => setDrawerOpen((v) => !v)}
+      />
     </div>
   );
 }

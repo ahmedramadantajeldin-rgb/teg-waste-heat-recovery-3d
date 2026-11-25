@@ -4,6 +4,7 @@ import { PlotlyEngChart } from '../charts/PlotlyEngChart';
 import { useSimulationStore } from '../../store/simulationStore';
 import { calculateFinParams } from '../../physics/finAnalysis';
 import { C } from '../../design/theme';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults } from '../../physics/types';
 
 interface FinDesignPageProps { results: SimulationResults | null }
@@ -18,6 +19,7 @@ const MAT_DETAILS: Record<string, { k: string; desc: string }> = {
 export function FinDesignPage({ results }: FinDesignPageProps) {
   const store = useSimulationStore();
   const { fin } = store;
+  const { isCompact } = useViewport();
 
   const lengthSweep = useMemo(() => {
     const h = results?.convection.h ?? 15;
@@ -36,9 +38,17 @@ export function FinDesignPage({ results }: FinDesignPageProps) {
   }, [fin, results, store.T_ambient]);
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompact ? 'column' : 'row', height: '100%', overflow: isCompact ? 'auto' : 'hidden' }}>
       {/* Left — controls */}
-      <div style={{ width: 270, background: C.bg.secondary, borderRight: `1px solid ${C.bg.border}`, padding: '14px 14px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{
+        width: isCompact ? '100%' : 270,
+        background: C.bg.secondary,
+        borderRight: isCompact ? 'none' : `1px solid ${C.bg.border}`,
+        borderBottom: isCompact ? `1px solid ${C.bg.border}` : 'none',
+        padding: '14px 14px',
+        overflowY: isCompact ? 'visible' : 'auto',
+        flexShrink: 0,
+      }}>
 
         <SectionPanel title="Fin Geometry">
           {/* Fin Type */}
@@ -101,7 +111,17 @@ export function FinDesignPage({ results }: FinDesignPageProps) {
       </div>
 
       {/* Right — 2×2 chart grid */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, overflow: 'hidden', background: C.bg.primary, padding: 2 }}>
+      <div style={{
+        flex: isCompact ? 'none' : 1,
+        display: 'grid',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr',
+        gridTemplateRows: isCompact ? undefined : '1fr 1fr',
+        gridAutoRows: isCompact ? '290px' : undefined,
+        gap: 4,
+        overflow: isCompact ? 'visible' : 'hidden',
+        background: C.bg.primary,
+        padding: 4,
+      }}>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Fin Height H vs Efficiency η_f (Eq.20)"
             data={[{ x: lengthSweep.map(d => d.L), y: lengthSweep.map(d => d.eta_f), type: 'scatter', mode: 'lines+markers', name: 'η_f (%)', line: { color: '#58a6ff', width: 2 }, marker: { color: '#58a6ff', size: 5 } }]}

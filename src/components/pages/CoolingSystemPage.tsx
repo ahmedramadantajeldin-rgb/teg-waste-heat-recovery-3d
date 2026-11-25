@@ -4,6 +4,7 @@ import { PlotlyEngChart } from '../charts/PlotlyEngChart';
 import { useSimulationStore } from '../../store/simulationStore';
 import { computeConvection, fanPower } from '../../physics/convection';
 import { C, FONT } from '../../design/theme';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults } from '../../physics/types';
 
 interface CoolingSystemPageProps { results: SimulationResults | null }
@@ -11,6 +12,7 @@ interface CoolingSystemPageProps { results: SimulationResults | null }
 export function CoolingSystemPage({ results }: CoolingSystemPageProps) {
   const store = useSimulationStore();
   const { convection, fin } = store;
+  const { isCompact } = useViewport();
 
   const vSweep = useMemo(() => {
     return Array.from({ length: 20 }, (_, i) => i * 0.5).map((V) => {
@@ -30,9 +32,17 @@ export function CoolingSystemPage({ results }: CoolingSystemPageProps) {
   ] as const;
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompact ? 'column' : 'row', height: '100%', overflow: isCompact ? 'auto' : 'hidden' }}>
       {/* Left controls */}
-      <div style={{ width: 270, background: C.bg.secondary, borderRight: `1px solid ${C.bg.border}`, padding: '14px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{
+        width: isCompact ? '100%' : 270,
+        background: C.bg.secondary,
+        borderRight: isCompact ? 'none' : `1px solid ${C.bg.border}`,
+        borderBottom: isCompact ? `1px solid ${C.bg.border}` : 'none',
+        padding: '14px',
+        overflowY: isCompact ? 'visible' : 'auto',
+        flexShrink: 0,
+      }}>
 
         <SectionPanel title="Convection Mode">
           {modeOptions.map((m) => (
@@ -77,12 +87,12 @@ export function CoolingSystemPage({ results }: CoolingSystemPageProps) {
       </div>
 
       {/* Right content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg.primary }}>
+      <div style={{ flex: isCompact ? 'none' : 1, display: 'flex', flexDirection: 'column', overflow: isCompact ? 'visible' : 'hidden', background: C.bg.primary }}>
         {/* Mode comparison strip */}
-        <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${C.bg.border}`, background: C.bg.secondary }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${C.bg.border}`, background: C.bg.secondary }}>
           {modeOptions.map((m) => (
             <div key={m.id} style={{
-              flex: 1, background: C.bg.card, border: `1px solid ${convection.mode === m.id ? m.color + '66' : C.bg.border}`,
+              flex: '1 1 170px', background: C.bg.card, border: `1px solid ${convection.mode === m.id ? m.color + '66' : C.bg.border}`,
               borderRadius: 7, padding: '10px 12px',
             }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: m.color, marginBottom: 4 }}>{m.label}</div>
@@ -96,7 +106,15 @@ export function CoolingSystemPage({ results }: CoolingSystemPageProps) {
         </div>
 
         {/* Charts */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, overflow: 'hidden', padding: 2 }}>
+        <div style={{
+          flex: isCompact ? 'none' : 1,
+          display: 'grid',
+          gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr',
+          gridAutoRows: isCompact ? '290px' : undefined,
+          gap: 4,
+          overflow: isCompact ? 'visible' : 'hidden',
+          padding: 4,
+        }}>
           <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
             <PlotlyEngChart title="Air Velocity vs h coefficient (Eq.5)"
               data={[{ x: vSweep.map(d => d.V), y: vSweep.map(d => d.h), type: 'scatter', mode: 'lines+markers', name: 'h (W/m²K)', line: { color: '#58a6ff', width: 2 } }]}

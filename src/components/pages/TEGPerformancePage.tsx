@@ -4,6 +4,7 @@ import { PlotlyEngChart } from '../charts/PlotlyEngChart';
 import { useSimulationStore } from '../../store/simulationStore';
 import { openCircuitVoltage, electricalPower, maxElectricalPower, loadVoltage, loadCurrent } from '../../physics/tegModel';
 import { C, FONT } from '../../design/theme';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults } from '../../physics/types';
 
 interface TEGPerformancePageProps { results: SimulationResults | null }
@@ -11,6 +12,7 @@ interface TEGPerformancePageProps { results: SimulationResults | null }
 export function TEGPerformancePage({ results }: TEGPerformancePageProps) {
   const store = useSimulationStore();
   const { teg } = store;
+  const { isCompact } = useViewport();
 
   const dT = results?.teg.dT_legs ?? (store.T_source - store.T_ambient) * 0.6;
   const Voc = openCircuitVoltage(teg.N_couples, teg.alpha, dT);
@@ -42,9 +44,17 @@ export function TEGPerformancePage({ results }: TEGPerformancePageProps) {
   const tresult = results?.teg;
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompact ? 'column' : 'row', height: '100%', overflow: isCompact ? 'auto' : 'hidden' }}>
       {/* Left controls */}
-      <div style={{ width: 280, background: C.bg.secondary, borderRight: `1px solid ${C.bg.border}`, padding: '14px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{
+        width: isCompact ? '100%' : 280,
+        background: C.bg.secondary,
+        borderRight: isCompact ? 'none' : `1px solid ${C.bg.border}`,
+        borderBottom: isCompact ? `1px solid ${C.bg.border}` : 'none',
+        padding: '14px',
+        overflowY: isCompact ? 'visible' : 'auto',
+        flexShrink: 0,
+      }}>
 
         <SectionPanel title="TEG Module Parameters">
           <Slider label="Module Size (Side)" value={Math.round(Math.sqrt(teg.A_module || 0.0016) * 1000)} min={24} max={64} step={2} unit=" mm"
@@ -116,7 +126,17 @@ export function TEGPerformancePage({ results }: TEGPerformancePageProps) {
       </div>
 
       {/* Right charts */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, overflow: 'hidden', background: C.bg.primary, padding: 2 }}>
+      <div style={{
+        flex: isCompact ? 'none' : 1,
+        display: 'grid',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr',
+        gridTemplateRows: isCompact ? undefined : '1fr 1fr',
+        gridAutoRows: isCompact ? '290px' : undefined,
+        gap: 4,
+        overflow: isCompact ? 'visible' : 'hidden',
+        background: C.bg.primary,
+        padding: 4,
+      }}>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="R_load vs P_elec — Bell Curve (Eq.7.4)"
             data={[

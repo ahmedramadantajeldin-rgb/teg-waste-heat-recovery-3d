@@ -1,4 +1,4 @@
-import { Suspense, useState, useMemo } from 'react';
+import { Component, Suspense, useState, useMemo, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { HeatSource } from './HeatSource';
@@ -25,13 +25,37 @@ interface TEGSceneProps {
   style?: React.CSSProperties;
 }
 
-function LoadingFallback() {
-  return (
-    <mesh position={[0, 0.04, 0]}>
-      <boxGeometry args={[0.08, 0.06, 0.08]} />
-      <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.5} />
-    </mesh>
-  );
+class SceneErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string }> {
+  state = { hasError: false, message: '' };
+  static getDerivedStateFromError(err: unknown) {
+    return { hasError: true, message: err instanceof Error ? err.message : 'WebGL initialization failed' };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', padding: 24,
+          background: '#090e17', color: '#cbd5e1', textAlign: 'center', gap: 10,
+        }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#f8fafc' }}>3D WebGL View Unavailable</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', maxWidth: 420 }}>
+            Hardware acceleration or WebGL context could not be initialized ({this.state.message}). All engineering calculators and charts remain available in the top tabs.
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, message: '' })}
+            style={{
+              padding: '6px 14px', borderRadius: 6, border: '1px solid #38bdf8',
+              background: '#0284c733', color: '#38bdf8', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Retry 3D Viewport
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /**
@@ -154,7 +178,7 @@ export function TEGScene({ results, style }: TEGSceneProps) {
   const isFanRunning = isFanVisible && convection.fanEnabled && convection.V_air > 0;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', ...style }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#090e17', ...style }}>
       {/* ── Top Toolbar with Preset Views & Toggles ── */}
       <div
         style={{
@@ -226,21 +250,27 @@ export function TEGScene({ results, style }: TEGSceneProps) {
       )}
 
       {/* ── Main 3D Canvas ── */}
-      <Canvas
-        camera={{ position: [-0.015, geom.apparatusCenterY + 0.095, 0.275], fov: 32 }}
-        style={{
-          width: '100%',
-          height: '100%',
-          background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 60%, #090e17 100%)',
-        }}
-        shadows
-        gl={{
-          antialias: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.15,
-        }}
-      >
-        <Suspense fallback={<LoadingFallback />}>
+      <SceneErrorBoundary>
+        <Canvas
+          camera={{ position: [-0.015, geom.apparatusCenterY + 0.095, 0.275], fov: 32 }}
+          style={{
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 60%, #090e17 100%)',
+          }}
+          shadows
+          gl={{
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.15,
+          }}
+          onCreated={({ gl }) => {
+            gl.setClearColor('#0b1322', 1);
+          }}
+        >
+          <Suspense fallback={null}>
           <WorkbenchEnvironment width={geom.benchWidthX} depth={geom.benchDepthZ} />
 
           <CameraController
@@ -436,7 +466,8 @@ export function TEGScene({ results, style }: TEGSceneProps) {
             />
           </group>
         </Suspense>
-      </Canvas>
+        </Canvas>
+      </SceneErrorBoundary>
     </div>
   );
 }

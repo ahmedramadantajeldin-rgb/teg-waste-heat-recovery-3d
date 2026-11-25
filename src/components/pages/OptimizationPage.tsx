@@ -3,6 +3,7 @@ import { PlotlyEngChart } from '../charts/PlotlyEngChart';
 import { useSimulationStore, selectSimState } from '../../store/simulationStore';
 import { runDesignComparison, parametricSweep } from '../../physics/optimization';
 import { C, FONT } from '../../design/theme';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults, DesignComparisonResult } from '../../physics/types';
 import { Play } from 'lucide-react';
 
@@ -12,9 +13,12 @@ const DESIGN_COLORS: Record<string, string> = {
   A: '#8b949e', B: '#58a6ff', C: '#3fb950', D: '#facc15', E: '#f97316',
 };
 
-export function OptimizationPage({ results }: OptimizationPageProps) {
+export function OptimizationPage({ results: _results }: OptimizationPageProps) {
   const store = useSimulationStore();
-  const [comparison, setComparison] = useState<DesignComparisonResult[] | null>(null);
+  const { isCompact } = useViewport();
+  const [comparison, setComparison] = useState<DesignComparisonResult[] | null>(() =>
+    runDesignComparison(selectSimState(store)),
+  );
   const [running, setRunning] = useState(false);
 
   const handleRun = () => {
@@ -41,9 +45,17 @@ export function OptimizationPage({ results }: OptimizationPageProps) {
   const sorted = comparison ? [...comparison].sort((a, b) => b.results.system.P_net - a.results.system.P_net) : null;
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompact ? 'column' : 'row', height: '100%', overflow: isCompact ? 'auto' : 'hidden' }}>
       {/* Left — design cards */}
-      <div style={{ width: 310, background: C.bg.secondary, borderRight: `1px solid ${C.bg.border}`, padding: '14px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{
+        width: isCompact ? '100%' : 320,
+        background: C.bg.secondary,
+        borderRight: isCompact ? 'none' : `1px solid ${C.bg.border}`,
+        borderBottom: isCompact ? `1px solid ${C.bg.border}` : 'none',
+        padding: '14px',
+        overflowY: isCompact ? 'visible' : 'auto',
+        flexShrink: 0,
+      }}>
 
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text.primary, marginBottom: 4 }}>Design Comparison</div>
@@ -91,7 +103,7 @@ export function OptimizationPage({ results }: OptimizationPageProps) {
               </span>
             </div>
             <div style={{ fontSize: 10, color: C.text.secondary, marginBottom: 6 }}>{d.description}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, fontSize: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 14px', fontSize: 10 }}>
               {[
                 ['η_th', `${(d.results.teg.eta_th * 100).toFixed(2)}%`],
                 ['η_sys', `${(d.results.system.eta_sys * 100).toFixed(2)}%`],
@@ -100,7 +112,7 @@ export function OptimizationPage({ results }: OptimizationPageProps) {
                 ['P_fan', `${d.results.system.P_fan.toFixed(2)} W`],
                 ['η_f', `${(d.results.fin.eta_f * 100).toFixed(1)}%`],
               ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, padding: '2px 0' }}>
                   <span style={{ color: C.text.muted }}>{label}:</span>
                   <span style={{ color: C.text.secondary, fontFamily: FONT.mono }}>{val}</span>
                 </div>
@@ -117,7 +129,17 @@ export function OptimizationPage({ results }: OptimizationPageProps) {
       </div>
 
       {/* Right — charts */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, overflow: 'hidden', background: C.bg.primary, padding: 2 }}>
+      <div style={{
+        flex: isCompact ? 'none' : 1,
+        display: 'grid',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr',
+        gridTemplateRows: isCompact ? undefined : '1fr 1fr',
+        gridAutoRows: isCompact ? '290px' : undefined,
+        gap: 4,
+        overflow: isCompact ? 'visible' : 'hidden',
+        background: C.bg.primary,
+        padding: 4,
+      }}>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Design Comparison — Net Power (Eq.7.7)"
             data={sorted ? [{ x: sorted.map(d => `Design ${d.label}`), y: sorted.map(d => d.results.system.P_net), type: 'bar', marker: { color: sorted.map(d => DESIGN_COLORS[d.label]) }, name: 'P_net (W)' }] : []}
@@ -126,7 +148,7 @@ export function OptimizationPage({ results }: OptimizationPageProps) {
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Heatmap: N fins × V_air → P_net (W)"
             data={[{ x: heatmapData.x, y: heatmapData.y, z: heatmapData.z, type: 'heatmap', colorscale: 'RdYlGn', reversescale: false, colorbar: { title: 'P_net', titlefont: { color: C.text.secondary }, tickfont: { color: C.text.secondary } } }] as any}
-            layout={{ xaxis: { title: 'V_air (m/s)' }, yaxis: { title: 'N fins' } }} />
+            layout={{ xaxis: { title: 'V_air (m/s)', ticksuffix: ' m/s' }, yaxis: { title: 'N fins' } }} />
         </div>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Thermal Efficiency by Design (Eq.7.6)"

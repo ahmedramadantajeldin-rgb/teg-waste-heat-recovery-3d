@@ -56,7 +56,7 @@ export function CameraController({
     const fovDeg = (camera as THREE.PerspectiveCamera).fov ?? 32;
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(fovDeg * 0.5));
     const projHoriz = Math.abs(spanX * Math.cos(azimuthRad)) + Math.abs(spanZ * Math.sin(azimuthRad));
-    const distH = (projHoriz * 0.5) / (tanHalf * Math.max(0.5, aspect));
+    const distH = (projHoriz * 0.5) / (tanHalf * Math.max(0.35, aspect));
     const distV = (spanY * 0.5) / tanHalf;
     return Math.max(distH, distV, 0.16) * 1.18;
   };

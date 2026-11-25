@@ -76,7 +76,7 @@ export function DashboardPage({ results, T_source, T_ambient }: DashboardPagePro
       <EnergyBalance results={results} />
 
       {/* Primary KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginTop: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))', gap: 10, marginTop: 14 }}>
         <KPICard
           label="Net Electrical Power"
           value={system.P_net}
@@ -112,7 +112,7 @@ export function DashboardPage({ results, T_source, T_ambient }: DashboardPagePro
       </div>
 
       {/* Detail grids */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 10, marginTop: 14 }}>
 
         {/* Thermal Performance */}
         <SectionPanel title="Thermal Performance" accentColor={C.hot}>
@@ -156,7 +156,7 @@ export function DashboardPage({ results, T_source, T_ambient }: DashboardPagePro
         <div style={{ fontSize: 10, fontWeight: 700, color: C.text.secondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
           📖 Reference Cases (from Paper — Section 8)
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
           <div style={{ background: C.bg.secondary, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.bg.border}` }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: C.accent, marginBottom: 4 }}>Amrize Cement Plant (Eq.8.1)</div>
             <div style={{ fontSize: 11, color: C.text.secondary }}>573 cartridges, peak net 7.7 kW</div>

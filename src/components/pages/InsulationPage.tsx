@@ -6,6 +6,7 @@ import { calculateInsulation } from '../../physics/insulationModel';
 import { computeAssemblyGeometry } from '../../physics/assemblyGeometry';
 import { INSULATION_MATERIALS } from '../../physics/constants';
 import { C } from '../../design/theme';
+import { useViewport } from '../../design/useViewport';
 import type { SimulationResults } from '../../physics/types';
 
 interface InsulationPageProps { results: SimulationResults | null }
@@ -19,6 +20,7 @@ export function InsulationPage({ results }: InsulationPageProps) {
   const store = useSimulationStore();
   const simState = selectSimState(store);
   const { insulation } = store;
+  const { isCompact } = useViewport();
 
   const geomArea = useMemo(
     () => computeAssemblyGeometry(simState, false).A_insulation_geom,
@@ -45,9 +47,17 @@ export function InsulationPage({ results }: InsulationPageProps) {
   const ins = results?.insulation;
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompact ? 'column' : 'row', height: '100%', overflow: isCompact ? 'auto' : 'hidden' }}>
       {/* Left controls */}
-      <div style={{ width: 280, background: C.bg.secondary, borderRight: `1px solid ${C.bg.border}`, padding: '14px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{
+        width: isCompact ? '100%' : 280,
+        background: C.bg.secondary,
+        borderRight: isCompact ? 'none' : `1px solid ${C.bg.border}`,
+        borderBottom: isCompact ? `1px solid ${C.bg.border}` : 'none',
+        padding: '14px',
+        overflowY: isCompact ? 'visible' : 'auto',
+        flexShrink: 0,
+      }}>
 
         <SectionPanel title="Insulation Control">
           <ToggleBtn label="Thermal Insulation Active" value={insulation.enabled}
@@ -120,7 +130,17 @@ export function InsulationPage({ results }: InsulationPageProps) {
       </div>
 
       {/* Right charts */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, overflow: 'hidden', background: C.bg.primary, padding: 2 }}>
+      <div style={{
+        flex: isCompact ? 'none' : 1,
+        display: 'grid',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr 1fr',
+        gridTemplateRows: isCompact ? undefined : '1fr 1fr',
+        gridAutoRows: isCompact ? '290px' : undefined,
+        gap: 4,
+        overflow: isCompact ? 'visible' : 'hidden',
+        background: C.bg.primary,
+        padding: 4,
+      }}>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Insulation Thickness vs Heat Loss (Eq.9)"
             data={[{ x: thickSweep.map(d => d.thick), y: thickSweep.map(d => d.Q_loss), type: 'scatter', mode: 'lines+markers', name: 'Q_loss (W)', line: { color: '#3fb950', width: 2 }, marker: { color: '#3fb950', size: 4 } }]}
@@ -129,12 +149,12 @@ export function InsulationPage({ results }: InsulationPageProps) {
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Material Comparison — Q_loss"
             data={[{ x: matComparison.map(d => d.mat), y: matComparison.map(d => d.Q_loss), type: 'bar', marker: { color: matComparison.map(d => d.T_max >= store.T_source ? '#3fb950' : C.error) }, name: 'Q_loss (W)' }]}
-            layout={{ xaxis: { title: 'Material' }, yaxis: { title: 'Q_loss (W)' } }} />
+            layout={{ margin: { b: 68 }, xaxis: { title: 'Material', tickangle: -20 }, yaxis: { title: 'Q_loss (W)' } }} />
         </div>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Thermal Conductivity by Material"
             data={[{ x: matComparison.map(d => d.mat), y: matComparison.map(d => d.k), type: 'bar', marker: { color: '#58a6ff' }, name: 'k (W/mK)' }]}
-            layout={{ xaxis: { title: 'Material' }, yaxis: { title: 'k (W/m·K)' } }} />
+            layout={{ margin: { b: 68 }, xaxis: { title: 'Material', tickangle: -20 }, yaxis: { title: 'k (W/m·K)' } }} />
         </div>
         <div style={{ background: C.bg.card, borderRadius: 6, overflow: 'hidden' }}>
           <PlotlyEngChart title="Max Service Temperature by Material"
@@ -142,7 +162,7 @@ export function InsulationPage({ results }: InsulationPageProps) {
               { x: matComparison.map(d => d.mat), y: matComparison.map(d => d.T_max), type: 'bar', marker: { color: matComparison.map(d => d.T_max >= store.T_source ? '#a3e635' : C.error) }, name: 'T_max (°C)' },
               { x: matComparison.map(d => d.mat), y: matComparison.map(() => store.T_source), type: 'scatter', mode: 'lines', line: { color: C.error, dash: 'dash', width: 1 }, name: 'T_source (°C)' },
             ]}
-            layout={{ xaxis: { title: 'Material' }, yaxis: { title: 'Temperature (°C)' } }} />
+            layout={{ margin: { b: 68 }, xaxis: { title: 'Material', tickangle: -20 }, yaxis: { title: 'Temperature (°C)' } }} />
         </div>
       </div>
     </div>
